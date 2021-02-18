@@ -1,0 +1,85 @@
+version: '2'
+
+services:
+  zk-a:
+    image: apachepulsar/pulsar
+    command: >
+      /bin/bash -c
+      "bin/pulsar zookeeper"
+    volumes:
+      - ./data/a:/pulsar/data
+  init-a:
+    image: apachepulsar/pulsar
+    command: >
+      /bin/bash -c
+      "sleep 5 && ./init.sh"
+    volumes:
+      - ./a/init.sh:/pulsar/init.sh
+      - ./data/a/init:/pulsar/init
+    depends_on:
+      - zk-a
+  pulsar-a:
+    image: apachepulsar/pulsar
+    command: >
+      /bin/bash -c
+      "sleep 10 && bin/pulsar broker --run-bookie"
+    expose:
+      - 8080
+      - 6650
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/a:/pulsar/data
+      - ./a/bookkeeper.conf:/pulsar/conf/bookkeeper.conf
+      - ./a/broker.conf:/pulsar/conf/broker.conf
+    depends_on:
+      - init-a
+  dashboard-a:
+    image: apachepulsar/pulsar-dashboard
+    depends_on:
+      - pulsar-a
+    ports:
+      - "80:80"
+    environment:
+      - SERVICE_URL=http://pulsar-a:8080
+  zk-b:
+    image: apachepulsar/pulsar
+    command: >
+      /bin/bash -c
+      "bin/pulsar zookeeper"
+    volumes:
+      - ./data/b:/pulsar/data
+  init-b:
+    image: apachepulsar/pulsar
+    command: >
+      /bin/bash -c
+      "sleep 5 && ./init.sh"
+    volumes:
+      - ./b/init.sh:/pulsar/init.sh
+      - ./data/b/init:/pulsar/init
+    depends_on:
+      - zk-b
+  pulsar-b:
+    image: apachepulsar/pulsar
+    command: >
+      /bin/bash -c
+      "sleep 10 && bin/pulsar broker --run-bookie"
+    expose:
+      - 8080
+      - 6650
+    ports:
+      - "8081:8080"
+    volumes:
+      - ./data/b:/pulsar/data
+      - ./b/bookkeeper.conf:/pulsar/conf/bookkeeper.conf
+      - ./b/broker.conf:/pulsar/conf/broker.conf
+    depends_on:
+      - init-b
+  dashboard-b:
+    image: apachepulsar/pulsar-dashboard
+    depends_on:
+      - pulsar-b
+    ports:
+      - "81:80"
+    environment:
+      - SERVICE_URL=http://pulsar-b:8080
